@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
 use JSON::XS;
-use File::Slurp qw/read_file/;
+use File::Slurp qw/read_file write_file/;
 use Data::Dumper;
 
 my $rawJson = read_file( 'mixtape-data.json' );
@@ -40,7 +40,7 @@ for my $change ( @$changes ) {
         my $selectArr = [];
         
         for my $select ( @parts ) {
-            print "Select: $select\n";
+            #print "Select: $select\n";
             if( $select =~ m/(.+)=(.+)/ ) {
                 my $attr = $1;
                 my $val = $2;
@@ -174,7 +174,7 @@ for my $change ( @$changes ) {
 }
 
 my $outJson = $coder->encode( $json );
-print $outJson;
+write_file( "output.json", $outJson );
 
 sub add {
     my ( $json, $change ) = @_;
@@ -203,9 +203,9 @@ sub add {
 
 sub del {
     my ( $root, $path, $select ) = @_;
-    print "Path=$path\n";
-    print "Selecting with:\n";
-    print Dumper( $select );
+    #print "Path=$path\n";
+    #print "Selecting with:\n";
+    #print Dumper( $select );
     my $pos = navigate( $root, $path );
     
     #print Dumper( $pos );
@@ -240,10 +240,10 @@ sub navigate {
     my ( $top, $path ) = @_;
     my @parts = split( '\.', $path );
     
-    print "Navigating\n";
+    #print "Navigating\n";
     my $curpos = $top;
     for my $part ( @parts ) {
-        print "  Part=$part\n";
+        #print "  Part=$part\n";
         if( $part =~ m/^[0-9]+$/ ) {
             $curpos = $curpos->[ $part ];
             next;
