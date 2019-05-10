@@ -9,8 +9,31 @@
     "autoId": 1,
     "path": "songs",
     "node": {
-        "artist" : "blah",
-        "title" : "blahblah"
+      "artist" : "blah",
+      "title" : "blahblah"
+    }
+  },
+  {
+    "type": "addSongToPlaylist",
+    "playlistId": 1, 
+    "userId": 2,
+    "songId": 3
+  },
+  {
+    "type": "delPlaylist",
+    "playlistId": 2, 
+    "userId": 3
+  },
+  {
+    "type": "addPlaylist",
+    "userId": 10,
+    "songIds": [30,20]
+  },
+  {
+    "type": "addSong",
+    "song": {
+      "artist" : "blah",
+      "title" : "blahblah2"
     }
   }
 ]

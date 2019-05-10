@@ -23,26 +23,7 @@ for my $change ( @$changes ) {
     #   }
     # }
     if( $type eq 'add' ) {
-        my $path = $change->{path};
-        my $autoId = $change->{autoId};
-        my $pos = navigate( $json, $path );
-        
-        my $newId = undef;
-        if( $autoId ) {
-            my $maxId = 0;
-            for my $node ( @$pos ) {
-                my $nodeId = $node->{id};
-                if( $nodeId > $maxId ) {
-                    $maxId = $nodeId;
-                }
-            }
-            $newId = $maxId + 1;
-        }
-        my $node = $change->{node};
-        if( $newId ) {
-            $node->{id} = "$newId";
-        }
-        push( @$pos, $node );
+        add( $json, $change );
     }
     
     # Example
@@ -71,10 +52,154 @@ for my $change ( @$changes ) {
         }
         del( $json, $path, $selectArr );
     }
+    
+    # Example:
+    # {
+    #   "type": "addSongToPlaylist",
+    #   "playlistId": 1, 
+    #   "userId": 2,
+    #   "songId": 3
+    # }
+    if( $type eq 'addSongToPlaylist' ) {
+        my $playlistId = $change->{playlistId};
+        my $userId = $change->{userId};
+        my $songId = $change->{songId};
+        
+        my $pos = navigate( $json, "playlists" );
+        my $i = find( $pos, [ { attr => 'id', val => $playlistId } ] );
+        if( defined $i ) {
+            my $node = $pos->[ $i ];
+            my $foundUserId = $node->{user_id};
+            if( $foundUserId ne $userId ) {
+                die "UserId does not match - $foundUserId != $userId";
+            }
+            my $songIds = $node->{song_ids};
+            
+            my $found = 0;
+            for my $oneId ( @$songIds ) {
+                if( $oneId eq $songId ) {
+                    $found = 1;
+                    last;
+                }
+            }
+            if( $found ) {
+                die "Song id already present in playlist";
+            }
+            
+            # This is inefficient; assuming it is already sorted every time we can just scan to insertion point
+            # and add without doing a sort. Doing a sort here as this is just a coding exercise...
+            # Also note that the sample playlist song ids do not have all the song ids sorted... which they should...
+            push( @$songIds, $songId );
+            @$songIds = sort { $a <=> $b } @$songIds;
+        }
+    }
+    
+    # Example:
+    # {
+    #   "type": "delPlaylist",
+    #   "playlistId": 1, 
+    #   "userId": 2,
+    # }
+    if( $type eq 'delPlaylist' ) {
+        my $playlistId = $change->{playlistId};
+        my $userId = $change->{userId};
+        
+        my $pos = navigate( $json, "playlists" );
+        my $i = find( $pos, [ { attr => 'id', val => $playlistId } ] );
+        if( defined $i ) {
+            my $node = $pos->[ $i ];
+            my $foundUserId = $node->{user_id};
+            if( $foundUserId ne $userId ) {
+                die "UserId does not match - $foundUserId != $userId";
+            }
+            splice( @$pos, $i, 1 );
+        }
+    }
+    
+    # Example:
+    # {
+    #   "type": "addPlaylist",
+    #   "userId": 10,
+    #   "songIds": [20,30]
+    # }
+    if( $type eq 'addPlaylist' ) {
+        my $userId = $change->{userId};
+        # Note that user id is not checked to be sure it is valid here
+        my $songIds = $change->{songIds};
+        
+        if( !$songIds || !@$songIds ) {
+            # requirement of exercise says that playlists must contain at least one song...
+            # why that is? who knows. Maybe to see if people pay attention to the req?
+            die "Some songs must be specified when adding a playlist";
+        }
+        
+        my @songIdsAsStrings;
+        # stringify song ids since they appear that way in example data
+        # I'm also sorting them numerically for sanity
+        for my $songId ( sort { $a <=> $b } @$songIds ) {
+            push( @songIdsAsStrings, "$songId" );
+        }
+        
+        
+        # Note that song ids are not checked to ensure that are valid here
+        add( $json, {
+            path => 'playlists',
+            autoId => 1,
+            node => {
+                user_id => "$userId",
+                song_ids => \@songIdsAsStrings
+            }
+        } );
+    }
+    
+    # Example:
+    # {
+    #   "type": "addSong",
+    #   "song": {
+    #     "artist" : "blah",
+    #     "title" : "blahblah2"
+    #   }
+    # }
+    if( $type eq 'addSong' ) {
+        # Note that no sanity checking is done for the contents of song here; it is just dumped in blindly.
+        # Bad practice really. Everything should be checked against a schema.
+        # Additionally we could end up adding a duplicate here; am specifically not checking here for
+        # duplicate addition but it could easily be done by checking first with the 'find' function.
+        add( $json, {
+            path => 'songs',
+            autoId => 1,
+            node => $change->{song}
+        } );
+    }
 }
 
 my $outJson = $coder->encode( $json );
 print $outJson;
+
+sub add {
+    my ( $json, $change ) = @_;
+    
+    my $path = $change->{path};
+    my $autoId = $change->{autoId};
+    my $pos = navigate( $json, $path );
+    
+    my $newId = undef;
+    if( $autoId ) {
+        my $maxId = 0;
+        for my $node ( @$pos ) {
+            my $nodeId = $node->{id};
+            if( $nodeId > $maxId ) {
+                $maxId = $nodeId;
+            }
+        }
+        $newId = $maxId + 1;
+    }
+    my $node = $change->{node};
+    if( $newId ) {
+        $node->{id} = "$newId";
+    }
+    push( @$pos, $node );
+}
 
 sub del {
     my ( $root, $path, $select ) = @_;
