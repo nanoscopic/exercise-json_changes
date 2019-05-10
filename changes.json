@@ -1,0 +1,16 @@
+[
+  {
+    "type": "delete",
+    "path": "songs",
+    "select": "id=40"
+  },
+  {
+    "type": "add",
+    "autoId": 1,
+    "path": "songs",
+    "node": {
+        "artist" : "blah",
+        "title" : "blahblah"
+    }
+  }
+]
